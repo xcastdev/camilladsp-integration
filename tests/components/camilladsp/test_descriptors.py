@@ -407,9 +407,8 @@ class TestSensorDescriptors:
     def test_sensors_always_present(self, sample_config):
         descs = _build(sample_config)
         sensors = _descriptors_by_platform(descs, EntityPlatform.SENSOR)
-        assert (
-            len(sensors) >= 6
-        )  # state, capture_rate, buffer_level, clipped, load, active_config, volume, mute
+        # state, capture_rate, buffer_level, clipped, load, active_config
+        assert len(sensors) >= 6
 
     def test_sensor_unique_ids(self, sample_config):
         descs = _build(sample_config)
@@ -421,8 +420,9 @@ class TestSensorDescriptors:
         assert f"camilladsp_{ENTRY_ID}_status_clipped_samples" in ids
         assert f"camilladsp_{ENTRY_ID}_status_processing_load" in ids
         assert f"camilladsp_{ENTRY_ID}_active_config_filename" in ids
-        assert f"camilladsp_{ENTRY_ID}_volume_sensor" in ids
-        assert f"camilladsp_{ENTRY_ID}_mute_sensor" in ids
+        # Volume and mute are now writable entities (number / switch)
+        assert f"camilladsp_{ENTRY_ID}_volume_sensor" not in ids
+        assert f"camilladsp_{ENTRY_ID}_mute_sensor" not in ids
 
     def test_sensors_are_read_only(self, sample_config):
         descs = _build(sample_config)
@@ -435,6 +435,133 @@ class TestSensorDescriptors:
         sensors = _descriptors_by_platform(descs, EntityPlatform.SENSOR)
         # Sensors are emitted even for empty configs
         assert len(sensors) >= 6
+
+
+# ------------------------------------------------------------------
+# Global volume number descriptor
+# ------------------------------------------------------------------
+
+
+class TestGlobalVolumeDescriptor:
+    """Global volume is always emitted as a number entity with VOLUME_FAST."""
+
+    def test_volume_number_present(self, sample_config):
+        descs = _build(sample_config)
+        vol = [d for d in descs if d.unique_id == f"camilladsp_{ENTRY_ID}_volume"]
+        assert len(vol) == 1
+
+    def test_volume_number_attributes(self, sample_config):
+        descs = _build(sample_config)
+        vol = [d for d in descs if d.unique_id == f"camilladsp_{ENTRY_ID}_volume"][0]
+        assert vol.platform == EntityPlatform.NUMBER
+        assert vol.mutation_strategy == MutationStrategy.VOLUME_FAST
+        assert vol.unit == "%"
+        assert vol.min_value == 0.0
+        assert vol.max_value == 100.0
+        assert vol.step == 1.0
+        assert vol.value_type is float
+        assert vol.editable is True
+
+    def test_volume_number_with_empty_config(self):
+        descs = _build({})
+        vol = [d for d in descs if d.unique_id == f"camilladsp_{ENTRY_ID}_volume"]
+        assert len(vol) == 1
+
+
+# ------------------------------------------------------------------
+# Global mute switch descriptor
+# ------------------------------------------------------------------
+
+
+class TestGlobalMuteDescriptor:
+    """Global mute is always emitted as a switch entity with MUTE_FAST."""
+
+    def test_mute_switch_present(self, sample_config):
+        descs = _build(sample_config)
+        mute = [d for d in descs if d.unique_id == f"camilladsp_{ENTRY_ID}_mute"]
+        assert len(mute) == 1
+
+    def test_mute_switch_attributes(self, sample_config):
+        descs = _build(sample_config)
+        mute = [d for d in descs if d.unique_id == f"camilladsp_{ENTRY_ID}_mute"][0]
+        assert mute.platform == EntityPlatform.SWITCH
+        assert mute.mutation_strategy == MutationStrategy.MUTE_FAST
+        assert mute.value_type is bool
+        assert mute.icon == "mdi:volume-off"
+
+    def test_mute_switch_with_empty_config(self):
+        descs = _build({})
+        mute = [d for d in descs if d.unique_id == f"camilladsp_{ENTRY_ID}_mute"]
+        assert len(mute) == 1
+
+
+# ------------------------------------------------------------------
+# Volume dB ↔ percent conversion
+# ------------------------------------------------------------------
+
+
+class TestVolumeConversion:
+    """dB ↔ percent mapping: 0 % = -51 dB, 100 % = 0 dB."""
+
+    def test_db_to_percent_silence(self):
+        from custom_components.camilladsp.entities.utils import db_to_percent
+
+        assert db_to_percent(-51.0) == 0.0
+
+    def test_db_to_percent_unity(self):
+        from custom_components.camilladsp.entities.utils import db_to_percent
+
+        assert db_to_percent(0.0) == 100.0
+
+    def test_db_to_percent_mid(self):
+        from custom_components.camilladsp.entities.utils import db_to_percent
+
+        # -25.5 dB is exactly midpoint
+        assert db_to_percent(-25.5) == 50.0
+
+    def test_db_to_percent_clamps_below(self):
+        from custom_components.camilladsp.entities.utils import db_to_percent
+
+        assert db_to_percent(-100.0) == 0.0
+
+    def test_db_to_percent_clamps_above(self):
+        from custom_components.camilladsp.entities.utils import db_to_percent
+
+        assert db_to_percent(10.0) == 100.0
+
+    def test_percent_to_db_zero(self):
+        from custom_components.camilladsp.entities.utils import percent_to_db
+
+        assert percent_to_db(0.0) == -51.0
+
+    def test_percent_to_db_hundred(self):
+        from custom_components.camilladsp.entities.utils import percent_to_db
+
+        assert percent_to_db(100.0) == 0.0
+
+    def test_percent_to_db_fifty(self):
+        from custom_components.camilladsp.entities.utils import percent_to_db
+
+        assert percent_to_db(50.0) == -25.5
+
+    def test_percent_to_db_clamps_below(self):
+        from custom_components.camilladsp.entities.utils import percent_to_db
+
+        assert percent_to_db(-10.0) == -51.0
+
+    def test_percent_to_db_clamps_above(self):
+        from custom_components.camilladsp.entities.utils import percent_to_db
+
+        assert percent_to_db(150.0) == 0.0
+
+    def test_roundtrip_percent_to_db_to_percent(self):
+        from custom_components.camilladsp.entities.utils import (
+            db_to_percent,
+            percent_to_db,
+        )
+
+        for pct in [0.0, 25.0, 50.0, 75.0, 100.0]:
+            assert db_to_percent(percent_to_db(pct)) == pct
 
 
 # ------------------------------------------------------------------
