@@ -1,0 +1,226 @@
+reload_active_config:
+  name: Reload Active Config
+  description: >-
+    Re-fetch and re-normalize the active config from the CamillaDSP backend,
+    rebuilding all entity descriptors. Use this after making manual changes
+    to the config outside of Home Assistant.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: >-
+        Config entry ID. Optional if only one CamillaDSP instance is configured.
+      required: false
+      example: "abc123"
+      selector:
+        text:
+
+validate_active_config:
+  name: Validate Active Config
+  description: >-
+    Run backend validation on the currently cached config document. Raises an
+    error if the config is invalid; otherwise completes silently.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: >-
+        Config entry ID. Optional if only one CamillaDSP instance is configured.
+      required: false
+      example: "abc123"
+      selector:
+        text:
+
+save_active_config:
+  name: Save Active Config
+  description: >-
+    Explicitly save the current cached config document to disk on the
+    CamillaDSP backend.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: >-
+        Config entry ID. Optional if only one CamillaDSP instance is configured.
+      required: false
+      example: "abc123"
+      selector:
+        text:
+
+set_active_config_file:
+  name: Set Active Config File
+  description: >-
+    Switch the active config file on the CamillaDSP backend and reload all
+    entities to reflect the new configuration.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: >-
+        Config entry ID. Optional if only one CamillaDSP instance is configured.
+      required: false
+      example: "abc123"
+      selector:
+        text:
+    name:
+      name: Config File Name
+      description: >-
+        The name of the stored config file to activate (e.g. "my_config.yml").
+      required: true
+      example: "custom_new.yml"
+      selector:
+        text:
+
+set_config_value:
+  name: Set Config Value
+  description: >-
+    Set a single value in the active config document by path. The change goes
+    through the validate-apply-save pipeline.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: >-
+        Config entry ID. Optional if only one CamillaDSP instance is configured.
+      required: false
+      example: "abc123"
+      selector:
+        text:
+    path:
+      name: Config Path
+      description: >-
+        Dot/bracket notation path in the normalized config document.
+      required: true
+      example: "filters.Bass Control.parameters.gain"
+      selector:
+        text:
+    value:
+      name: Value
+      description: >-
+        The value to set at the specified path. Can be any type (number,
+        string, boolean, list, or dict).
+      required: true
+      example: "-6.0"
+      selector:
+        object:
+    save:
+      name: Save to Disk
+      description: >-
+        Whether to persist the change to the config file on disk.
+      required: false
+      default: true
+      selector:
+        boolean:
+
+batch_set_config_values:
+  name: Batch Set Config Values
+  description: >-
+    Apply multiple config value changes in a single atomic transaction. All
+    changes are validated together before being applied.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: >-
+        Config entry ID. Optional if only one CamillaDSP instance is configured.
+      required: false
+      example: "abc123"
+      selector:
+        text:
+    operations:
+      name: Operations
+      description: >-
+        List of path/value pairs to apply atomically.
+      required: true
+      example: '[{"path": "filters.Bass.parameters.gain", "value": -3.0}, {"path": "filters.Treble.parameters.gain", "value": 2.0}]'
+      selector:
+        object:
+    save:
+      name: Save to Disk
+      description: >-
+        Whether to persist the changes to the config file on disk.
+      required: false
+      default: true
+      selector:
+        boolean:
+
+add_config_node:
+  name: Add Config Node
+  description: >-
+    Add a filter, mixer, processor, or pipeline step to the active config.
+    The node data is normalized and validated before being applied.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: >-
+        Config entry ID. Optional if only one CamillaDSP instance is configured.
+      required: false
+      example: "abc123"
+      selector:
+        text:
+    section:
+      name: Section
+      description: >-
+        The config section to add the node to.
+      required: true
+      example: "filters"
+      selector:
+        select:
+          options:
+            - "filters"
+            - "mixers"
+            - "processors"
+            - "pipeline"
+    name:
+      name: Name
+      description: >-
+        Name for the new node. Required when adding to filters, mixers, or
+        processors. Ignored for pipeline steps.
+      required: false
+      example: "My New Filter"
+      selector:
+        text:
+    data:
+      name: Node Data
+      description: >-
+        The raw node definition as a dictionary. For filters, include "type"
+        and "parameters". For pipeline steps, include "type" (e.g. "Filter").
+      required: true
+      example: '{"type": "Gain", "parameters": {"gain": 0, "inverted": false}}'
+      selector:
+        object:
+    save:
+      name: Save to Disk
+      description: >-
+        Whether to persist the change to the config file on disk.
+      required: false
+      default: true
+      selector:
+        boolean:
+
+remove_config_node:
+  name: Remove Config Node
+  description: >-
+    Remove a named node or pipeline step from the active config. Pipeline
+    step indices are automatically re-indexed after removal.
+  fields:
+    entry_id:
+      name: Entry ID
+      description: >-
+        Config entry ID. Optional if only one CamillaDSP instance is configured.
+      required: false
+      example: "abc123"
+      selector:
+        text:
+    path:
+      name: Path
+      description: >-
+        Path to the node to remove. Use dot notation for named nodes
+        (e.g. "filters.MyFilter") or bracket notation for pipeline steps
+        (e.g. "pipeline[3]").
+      required: true
+      example: "filters.MyFilter"
+      selector:
+        text:
+    save:
+      name: Save to Disk
+      description: >-
+        Whether to persist the change to the config file on disk.
+      required: false
+      default: true
+      selector:
+        boolean:

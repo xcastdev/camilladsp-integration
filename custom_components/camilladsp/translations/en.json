@@ -1,0 +1,177 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to CamillaDSP",
+        "description": "Enter the host and port of your CamillaDSP backend.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to connect to CamillaDSP at the specified host and port.",
+      "unknown": "An unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "This CamillaDSP instance is already configured."
+    }
+  },
+  "services": {
+    "reload_active_config": {
+      "name": "Reload active config",
+      "description": "Re-fetch and re-normalize the active config from the CamillaDSP backend, rebuilding all entity descriptors.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry ID",
+          "description": "Config entry ID. Optional if only one CamillaDSP instance is configured."
+        }
+      }
+    },
+    "validate_active_config": {
+      "name": "Validate active config",
+      "description": "Run backend validation on the currently cached config document.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry ID",
+          "description": "Config entry ID. Optional if only one CamillaDSP instance is configured."
+        }
+      }
+    },
+    "save_active_config": {
+      "name": "Save active config",
+      "description": "Explicitly save the current cached config document to disk.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry ID",
+          "description": "Config entry ID. Optional if only one CamillaDSP instance is configured."
+        }
+      }
+    },
+    "set_active_config_file": {
+      "name": "Set active config file",
+      "description": "Switch the active config file and reload entities.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry ID",
+          "description": "Config entry ID. Optional if only one CamillaDSP instance is configured."
+        },
+        "name": {
+          "name": "Config file name",
+          "description": "The name of the stored config file to activate."
+        }
+      }
+    },
+    "set_config_value": {
+      "name": "Set config value",
+      "description": "Set a single value in the config document by path.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry ID",
+          "description": "Config entry ID. Optional if only one CamillaDSP instance is configured."
+        },
+        "path": {
+          "name": "Config path",
+          "description": "Dot/bracket notation path in the config document."
+        },
+        "value": {
+          "name": "Value",
+          "description": "The value to set at the path."
+        },
+        "save": {
+          "name": "Save to disk",
+          "description": "Whether to persist the change to the config file."
+        }
+      }
+    },
+    "batch_set_config_values": {
+      "name": "Batch set config values",
+      "description": "Apply multiple config value changes in a single transaction.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry ID",
+          "description": "Config entry ID. Optional if only one CamillaDSP instance is configured."
+        },
+        "operations": {
+          "name": "Operations",
+          "description": "List of path/value pairs to apply."
+        },
+        "save": {
+          "name": "Save to disk",
+          "description": "Whether to persist the changes to the config file."
+        }
+      }
+    },
+    "add_config_node": {
+      "name": "Add config node",
+      "description": "Add a filter, mixer, processor, or pipeline step to the config.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry ID",
+          "description": "Config entry ID. Optional if only one CamillaDSP instance is configured."
+        },
+        "section": {
+          "name": "Section",
+          "description": "The config section to add to."
+        },
+        "name": {
+          "name": "Name",
+          "description": "Name for the new node. Required for filters, mixers, and processors."
+        },
+        "data": {
+          "name": "Node data",
+          "description": "The raw node definition as a dictionary."
+        },
+        "save": {
+          "name": "Save to disk",
+          "description": "Whether to persist the change to the config file."
+        }
+      }
+    },
+    "remove_config_node": {
+      "name": "Remove config node",
+      "description": "Remove a named node or pipeline step from the config.",
+      "fields": {
+        "entry_id": {
+          "name": "Entry ID",
+          "description": "Config entry ID. Optional if only one CamillaDSP instance is configured."
+        },
+        "path": {
+          "name": "Path",
+          "description": "Path to the node to remove (e.g. 'filters.MyFilter' or 'pipeline[3]')."
+        },
+        "save": {
+          "name": "Save to disk",
+          "description": "Whether to persist the change to the config file."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "entry_not_found": {
+      "message": "No CamillaDSP entry found with the specified ID."
+    },
+    "no_entries": {
+      "message": "No CamillaDSP entries are configured."
+    },
+    "ambiguous_entry": {
+      "message": "Multiple CamillaDSP entries are configured. Please specify an entry_id."
+    },
+    "no_config_loaded": {
+      "message": "No config document is currently loaded."
+    },
+    "invalid_path": {
+      "message": "The specified config path is invalid or does not exist."
+    },
+    "name_required": {
+      "message": "A name is required when adding to filters, mixers, or processors."
+    },
+    "node_already_exists": {
+      "message": "A node with that name already exists in the specified section."
+    },
+    "unknown_section": {
+      "message": "Unknown config section specified."
+    }
+  }
+}
