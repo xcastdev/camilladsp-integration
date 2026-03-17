@@ -78,7 +78,7 @@ class CamillaDSPEntity(CoordinatorEntity[CamillaDSPCoordinator]):
         """Return device info – groups all entities under one HA device."""
         return DeviceInfo(
             identifiers={(DOMAIN, self.coordinator.entry.entry_id)},
-            name=f"CamillaDSP ({self.coordinator.entry.data.get('host', 'unknown')})",
+            name=f"CamillaDSP ({self.coordinator.entry.data.get('base_url', 'unknown')})",
             manufacturer="CamillaDSP",
             model="DSP Processor",
         )

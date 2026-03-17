@@ -11,14 +11,13 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow
 from homeassistant.data_entry_flow import FlowResult
 
-from .const import CONF_HOST, CONF_PORT, DEFAULT_PORT, DOMAIN
+from .const import CONF_BASE_URL, DEFAULT_BASE_URL, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_HOST): str,
-        vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
+        vol.Required(CONF_BASE_URL, default=DEFAULT_BASE_URL): str,
     }
 )
 
@@ -26,7 +25,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 class CamillaDSPConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for CamillaDSP."""
 
-    VERSION = 1
+    VERSION = 2
 
     async def async_step_user(
         self,
@@ -36,16 +35,15 @@ class CamillaDSPConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            host = user_input[CONF_HOST]
-            port = user_input[CONF_PORT]
+            base_url = user_input[CONF_BASE_URL].rstrip("/")
 
-            # Abort if this host:port is already configured.
-            self._async_abort_entries_match({CONF_HOST: host, CONF_PORT: port})
+            # Abort if this base URL is already configured.
+            self._async_abort_entries_match({CONF_BASE_URL: base_url})
 
             # Attempt a connection test against the CamillaDSP GUI backend.
             try:
                 async with aiohttp.ClientSession() as session:
-                    url = f"http://{host}:{port}/api/guiconfig"
+                    url = f"{base_url}/api/guiconfig"
                     async with session.get(
                         url, timeout=aiohttp.ClientTimeout(total=10)
                     ) as resp:
@@ -60,8 +58,8 @@ class CamillaDSPConfigFlow(ConfigFlow, domain=DOMAIN):
 
             if not errors:
                 return self.async_create_entry(
-                    title=f"CamillaDSP ({host})",
-                    data={CONF_HOST: host, CONF_PORT: port},
+                    title=f"CamillaDSP ({base_url})",
+                    data={CONF_BASE_URL: base_url},
                 )
 
         return self.async_show_form(

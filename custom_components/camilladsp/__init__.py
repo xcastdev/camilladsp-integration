@@ -11,11 +11,11 @@ from homeassistant.helpers.typing import ConfigType
 
 from .api.client import CamillaDSPClient
 from .const import (
+    CONF_BASE_URL,
     CONF_HOST,
     CONF_PORT,
     DATA_CLIENT,
     DATA_COORDINATOR,
-    DEFAULT_PORT,
     DOMAIN,
     PLATFORMS,
 )
@@ -31,16 +31,35 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Migrate config entries from v1 (host+port) to v2 (base_url)."""
+    if entry.version == 1:
+        _LOGGER.info(
+            "Migrating CamillaDSP config entry %s from v1 to v2", entry.entry_id
+        )
+        host = entry.data.get(CONF_HOST, "localhost")
+        port = entry.data.get(CONF_PORT, 5005)
+        base_url = f"http://{host}:{port}"
+
+        hass.config_entries.async_update_entry(
+            entry,
+            data={CONF_BASE_URL: base_url},
+            version=2,
+        )
+        _LOGGER.info("Migration to v2 successful: %s", base_url)
+
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up CamillaDSP from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
-    host = entry.data[CONF_HOST]
-    port = entry.data.get(CONF_PORT, DEFAULT_PORT)
+    base_url = entry.data[CONF_BASE_URL]
 
     # Create the API client using HA's shared aiohttp session
     session = async_get_clientsession(hass)
-    client = CamillaDSPClient(host, port, session=session)
+    client = CamillaDSPClient(base_url, session=session)
 
     # Create and initialise the coordinator
     coordinator = CamillaDSPCoordinator(hass, entry, client)

@@ -7,7 +7,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_HOST, CONF_PORT, DATA_COORDINATOR, DOMAIN
+from .const import CONF_BASE_URL, DATA_COORDINATOR, DOMAIN
 
 
 async def async_get_config_entry_diagnostics(
@@ -31,8 +31,7 @@ async def async_get_config_entry_diagnostics(
         descriptor_counts[platform] = descriptor_counts.get(platform, 0) + 1
 
     return {
-        "host": entry.data.get(CONF_HOST),
-        "port": entry.data.get(CONF_PORT),
+        "base_url": entry.data.get(CONF_BASE_URL),
         "active_config_file": coordinator.active_filename,
         "gui_config": (
             {

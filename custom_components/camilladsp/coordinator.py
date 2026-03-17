@@ -58,7 +58,7 @@ class CamillaDSPCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         super().__init__(
             hass,
             _LOGGER,
-            name=f"CamillaDSP ({entry.data.get('host', 'unknown')})",
+            name=f"CamillaDSP ({entry.data.get('base_url', 'unknown')})",
             update_interval=timedelta(seconds=UPDATE_INTERVAL),
         )
         self.client = client

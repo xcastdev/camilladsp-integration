@@ -4,12 +4,14 @@
 DOMAIN = "camilladsp"
 
 # Configuration keys
+CONF_BASE_URL = "base_url"
+
+# Legacy keys kept for config-entry migration from v1 → v2
 CONF_HOST = "host"
 CONF_PORT = "port"
 
 # Defaults
-DEFAULT_HOST = "localhost"
-DEFAULT_PORT = 5005  # CamillaDSP default GUI port
+DEFAULT_BASE_URL = "http://localhost:5005"
 
 # Polling / debounce
 UPDATE_INTERVAL = 5  # seconds between coordinator polls

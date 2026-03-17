@@ -36,21 +36,18 @@ class CamillaDSPClient:
 
     Usage as an async context manager::
 
-        async with CamillaDSPClient("192.168.1.10", 5005) as client:
+        async with CamillaDSPClient("http://192.168.1.10:5005") as client:
             status = await client.get_status()
     """
 
     def __init__(
         self,
-        host: str,
-        port: int,
+        base_url: str,
         session: aiohttp.ClientSession | None = None,
         timeout: aiohttp.ClientTimeout | None = None,
     ) -> None:
-        self._host = host
-        self._port = port
+        self._base_url = base_url.rstrip("/")
         self._session = session
-        self._base_url = f"http://{host}:{port}"
         self._owns_session = session is None
         self._timeout = timeout or _DEFAULT_TIMEOUT
 
