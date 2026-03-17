@@ -70,3 +70,45 @@ def resolve_config_value(config_doc: dict[str, Any], path: str) -> Any:
         else:
             return None
     return current
+
+
+# ------------------------------------------------------------------
+# Volume dB ↔ percent helpers
+# ------------------------------------------------------------------
+# 0 % ≙ -51 dB (silence),  100 % ≙ 0 dB (unity gain).
+
+_VOLUME_DB_MIN: float = -51.0
+_VOLUME_DB_MAX: float = 0.0
+_VOLUME_DB_RANGE: float = _VOLUME_DB_MAX - _VOLUME_DB_MIN  # 51.0
+
+
+def db_to_percent(db: float) -> float:
+    """Convert a dB value (-51 … 0) to a slider percentage (0 … 100).
+
+    Values outside the -51 … 0 range are clamped.
+
+    >>> db_to_percent(-51.0)
+    0.0
+    >>> db_to_percent(0.0)
+    100.0
+    >>> db_to_percent(-25.5)
+    50.0
+    """
+    clamped = max(_VOLUME_DB_MIN, min(_VOLUME_DB_MAX, db))
+    return round(((clamped - _VOLUME_DB_MIN) / _VOLUME_DB_RANGE) * 100.0, 1)
+
+
+def percent_to_db(percent: float) -> float:
+    """Convert a slider percentage (0 … 100) to a dB value (-51 … 0).
+
+    Values outside the 0 … 100 range are clamped.
+
+    >>> percent_to_db(0.0)
+    -51.0
+    >>> percent_to_db(100.0)
+    0.0
+    >>> percent_to_db(50.0)
+    -25.5
+    """
+    clamped = max(0.0, min(100.0, percent))
+    return _VOLUME_DB_MIN + (clamped / 100.0) * _VOLUME_DB_RANGE
