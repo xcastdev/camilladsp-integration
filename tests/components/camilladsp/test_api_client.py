@@ -86,7 +86,7 @@ class TestGetGuiConfig:
             }
         )
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         result = await client.get_gui_config()
 
@@ -101,7 +101,7 @@ class TestGetGuiConfig:
     async def test_gui_config_defaults(self):
         resp = _mock_response(json_data={})
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         result = await client.get_gui_config()
 
@@ -114,7 +114,7 @@ class TestGetGuiConfig:
     async def test_gui_config_invalid_payload(self):
         resp = _mock_response(json_data="not_a_dict")
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         with pytest.raises(CamillaDSPPayloadError):
             await client.get_gui_config()
@@ -137,7 +137,7 @@ class TestGetActiveConfigFile:
             }
         )
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         result = await client.get_active_config_file()
 
@@ -149,7 +149,7 @@ class TestGetActiveConfigFile:
     async def test_missing_key(self):
         resp = _mock_response(json_data={"wrong_key": "value"})
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         with pytest.raises(CamillaDSPPayloadError):
             await client.get_active_config_file()
@@ -158,7 +158,7 @@ class TestGetActiveConfigFile:
     async def test_invalid_payload_type(self):
         resp = _mock_response(json_data=[1, 2, 3])
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         with pytest.raises(CamillaDSPPayloadError):
             await client.get_active_config_file()
@@ -176,7 +176,7 @@ class TestGetConfig:
     async def test_returns_dict(self):
         resp = _mock_response(json_data={"devices": {"samplerate": 44100}})
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         result = await client.get_config()
         assert isinstance(result, dict)
@@ -186,7 +186,7 @@ class TestGetConfig:
     async def test_invalid_payload(self):
         resp = _mock_response(json_data="not_dict")
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         with pytest.raises(CamillaDSPPayloadError):
             await client.get_config()
@@ -204,7 +204,7 @@ class TestValidateConfig:
     async def test_valid_config(self):
         resp = _mock_response(text_data="OK")
         session = _mock_session(post_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         result = await client.validate_config({"devices": {}})
         assert result == "OK"
@@ -213,7 +213,7 @@ class TestValidateConfig:
     async def test_invalid_config(self):
         resp = _mock_response(text_data="ERROR: Missing samplerate")
         session = _mock_session(post_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         result = await client.validate_config({"devices": {}})
         assert "ERROR" in result
@@ -236,7 +236,7 @@ class TestGetStoredConfigs:
             ]
         )
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         result = await client.get_stored_configs()
         assert len(result) == 2
@@ -250,7 +250,7 @@ class TestGetStoredConfigs:
     async def test_empty_list(self):
         resp = _mock_response(json_data=[])
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         result = await client.get_stored_configs()
         assert result == []
@@ -259,7 +259,7 @@ class TestGetStoredConfigs:
     async def test_invalid_payload(self):
         resp = _mock_response(json_data={"not": "a_list"})
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         with pytest.raises(CamillaDSPPayloadError):
             await client.get_stored_configs()
@@ -292,7 +292,7 @@ class TestGetStatus:
             }
         )
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         result = await client.get_status()
         assert isinstance(result, RuntimeStatus)
@@ -306,7 +306,7 @@ class TestGetStatus:
     async def test_status_defaults(self):
         resp = _mock_response(json_data={})
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         result = await client.get_status()
         assert result.state == "unknown"
@@ -319,7 +319,7 @@ class TestGetStatus:
         data = {"state": "Running", "custom_field": 42}
         resp = _mock_response(json_data=data)
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         result = await client.get_status()
         assert result.raw == data
@@ -328,7 +328,7 @@ class TestGetStatus:
     async def test_status_invalid_payload(self):
         resp = _mock_response(json_data="not_dict")
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         with pytest.raises(CamillaDSPPayloadError):
             await client.get_status()
@@ -346,7 +346,7 @@ class TestVolume:
     async def test_get_volume(self):
         resp = _mock_response(text_data="-20.5")
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         result = await client.get_volume()
         assert result == -20.5
@@ -355,7 +355,7 @@ class TestVolume:
     async def test_get_volume_zero(self):
         resp = _mock_response(text_data="0.0")
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         assert await client.get_volume() == 0.0
 
@@ -363,7 +363,7 @@ class TestVolume:
     async def test_get_volume_invalid(self):
         resp = _mock_response(text_data="not_a_number")
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         with pytest.raises(CamillaDSPPayloadError):
             await client.get_volume()
@@ -372,7 +372,7 @@ class TestVolume:
     async def test_set_volume(self):
         resp = _mock_response(text_data="OK")
         session = _mock_session(post_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         await client.set_volume(-20.0)
         session.post.assert_called_once()
@@ -390,7 +390,7 @@ class TestMute:
     async def test_get_mute_true(self):
         resp = _mock_response(text_data="True")
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         assert await client.get_mute() is True
 
@@ -398,7 +398,7 @@ class TestMute:
     async def test_get_mute_false(self):
         resp = _mock_response(text_data="False")
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         assert await client.get_mute() is False
 
@@ -406,7 +406,7 @@ class TestMute:
     async def test_get_mute_case_insensitive(self):
         resp = _mock_response(text_data="true")
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         assert await client.get_mute() is True
 
@@ -414,7 +414,7 @@ class TestMute:
     async def test_get_mute_invalid(self):
         resp = _mock_response(text_data="maybe")
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         with pytest.raises(CamillaDSPPayloadError):
             await client.get_mute()
@@ -423,7 +423,7 @@ class TestMute:
     async def test_set_mute(self):
         resp = _mock_response(text_data="OK")
         session = _mock_session(post_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         await client.set_mute(True)
         session.post.assert_called_once()
@@ -442,7 +442,7 @@ class TestErrorHandling:
         session = MagicMock(spec=aiohttp.ClientSession)
         session.closed = False
         session.get = MagicMock(side_effect=aiohttp.ClientError("Connection refused"))
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         with pytest.raises(CamillaDSPConnectionError):
             await client.get_config()
@@ -452,7 +452,7 @@ class TestErrorHandling:
         session = MagicMock(spec=aiohttp.ClientSession)
         session.closed = False
         session.get = MagicMock(side_effect=asyncio.TimeoutError())
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         with pytest.raises(CamillaDSPTimeoutError):
             await client.get_config()
@@ -462,7 +462,7 @@ class TestErrorHandling:
         session = MagicMock(spec=aiohttp.ClientSession)
         session.closed = False
         session.post = MagicMock(side_effect=aiohttp.ClientError("Connection reset"))
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         with pytest.raises(CamillaDSPConnectionError):
             await client.set_config("test.yml", {})
@@ -472,7 +472,7 @@ class TestErrorHandling:
         session = MagicMock(spec=aiohttp.ClientSession)
         session.closed = False
         session.post = MagicMock(side_effect=asyncio.TimeoutError())
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         with pytest.raises(CamillaDSPTimeoutError):
             await client.set_config("test.yml", {})
@@ -481,7 +481,7 @@ class TestErrorHandling:
     async def test_http_error_status(self):
         resp = _mock_response(status=500, json_data={})
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         with pytest.raises(CamillaDSPError):
             await client.get_config()
@@ -490,7 +490,7 @@ class TestErrorHandling:
     async def test_http_404_error(self):
         resp = _mock_response(status=404, json_data={})
         session = _mock_session(get_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         with pytest.raises(CamillaDSPError):
             await client.get_gui_config()
@@ -501,7 +501,7 @@ class TestErrorHandling:
         session = MagicMock(spec=aiohttp.ClientSession)
         session.closed = False
         session.get = MagicMock(side_effect=asyncio.TimeoutError())
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         with pytest.raises(CamillaDSPConnectionError):
             await client.get_config()
@@ -520,7 +520,7 @@ class TestWriteEndpoints:
         resp = _mock_response(json_data=None, status=200)
         resp.json = AsyncMock(return_value=None)
         session = _mock_session(post_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         await client.set_config("test.yml", {"devices": {}})
         session.post.assert_called_once()
@@ -530,7 +530,7 @@ class TestWriteEndpoints:
         resp = _mock_response(json_data=None, status=200)
         resp.json = AsyncMock(return_value=None)
         session = _mock_session(post_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         await client.save_config_file("test.yml", {"devices": {}})
         session.post.assert_called_once()
@@ -540,7 +540,7 @@ class TestWriteEndpoints:
         resp = _mock_response(json_data=None, status=200)
         resp.json = AsyncMock(return_value=None)
         session = _mock_session(post_response=resp)
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         await client.set_active_config_file("myconfig.yml")
         session.post.assert_called_once()
@@ -558,7 +558,7 @@ class TestClientLifecycle:
     async def test_external_session_not_closed(self):
         session = MagicMock(spec=aiohttp.ClientSession)
         session.closed = False
-        client = CamillaDSPClient("localhost", 5005, session=session)
+        client = CamillaDSPClient("http://localhost:5005", session=session)
 
         await client.close()
         # External session should NOT be closed by the client
@@ -567,11 +567,11 @@ class TestClientLifecycle:
         session.close.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_base_url_construction(self):
-        client = CamillaDSPClient("192.168.1.10", 5005)
+    async def test_base_url_stored(self):
+        client = CamillaDSPClient("http://192.168.1.10:5005")
         assert client._base_url == "http://192.168.1.10:5005"
 
     @pytest.mark.asyncio
-    async def test_custom_port(self):
-        client = CamillaDSPClient("localhost", 9999)
+    async def test_base_url_trailing_slash_stripped(self):
+        client = CamillaDSPClient("http://localhost:9999/")
         assert client._base_url == "http://localhost:9999"
