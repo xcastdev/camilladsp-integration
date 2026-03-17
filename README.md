@@ -206,9 +206,22 @@ CamillaDSP uses a whole-document API -- there is no endpoint for updating a sing
 
 If validation fails at any step, the write is rejected, the cached config remains unchanged, and an error is surfaced.
 
+## Entity Presentation Model
+
+The integration uses a descriptor-driven entity model with explicit semantics for each concern:
+
+- **Number mode**: The global `Volume` control uses a slider (0–100%). All other numeric config values (frequencies, Q factors, gains, delays, coefficients, etc.) default to a typed numeric input (box mode) for precision. Custom dashboard cards can still render sliders against any writable number entity.
+- **Writeability**: Every descriptor carries an explicit `writable` flag. All write methods in the number, switch, and select platforms guard against writes to non-writable entities.
+- **Value origin**: Each descriptor records whether its value is a normal config literal, a tokenized placeholder, or a runtime status value.
+
 ## Token Detection
 
-CamillaDSP configs can contain tokenized values like `$samplerate$` or `filter_$channels$.txt`. The integration detects these patterns and marks affected entities as read-only to prevent accidental corruption. These fields remain editable through the raw path services.
+CamillaDSP configs can contain tokenized values like `$samplerate$` or `filter_$channels$.txt`. The integration detects these patterns centrally during descriptor building and converts affected entities into read-only sensor entities. This means:
+
+- Tokenized numeric values (e.g. a `freq` set to `$samplerate$`) appear as diagnostic sensors showing the raw token string, not as editable number controls.
+- Tokenized boolean values (e.g. a `mute` set to `$some_token$`) likewise become read-only sensors.
+- The raw token string is visible in Home Assistant for debugging and awareness.
+- These fields remain editable through the raw path services (`set_config_value`, `batch_set_config_values`).
 
 ## Known Limitations
 
