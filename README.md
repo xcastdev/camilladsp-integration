@@ -24,10 +24,21 @@ A custom Home Assistant integration that connects to a [CamillaDSP](https://gith
 
 ## Installation
 
+### HACS (custom repository)
+
+1. In HACS, open the menu in the top-right corner and choose **Custom repositories**.
+2. Add this repository URL and select **Integration** as the category.
+3. Search for **CamillaDSP** in HACS and install it.
+4. Restart Home Assistant.
+5. Go to **Settings > Devices & Services > Add Integration** and search for **CamillaDSP**.
+6. Enter the base URL of your CamillaDSP backend (for example `http://192.168.1.50:5005`).
+
+### Manual
+
 1. Copy the `custom_components/camilladsp/` directory into your Home Assistant `custom_components/` folder.
 2. Restart Home Assistant.
 3. Go to **Settings > Devices & Services > Add Integration** and search for **CamillaDSP**.
-4. Enter the base URL of your CamillaDSP backend (e.g. `http://192.168.1.50:5005`).
+4. Enter the base URL of your CamillaDSP backend (for example `http://192.168.1.50:5005`).
 5. The integration will validate the connection and create entities from your active config.
 
 ## Supported Filter Types

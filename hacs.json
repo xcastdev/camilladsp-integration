@@ -1,0 +1,9 @@
+{
+  "name": "CamillaDSP",
+  "content_in_root": false,
+  "domains": [
+    "camilladsp"
+  ],
+  "homeassistant": "2024.1.0",
+  "render_readme": true
+}
