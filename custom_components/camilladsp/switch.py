@@ -2,10 +2,12 @@
 
 Exposes every boolean parameter from the config document (filter mute,
 polarity inversion, pipeline bypass, compressor soft-clip, mixer source
-mute/invert) and the global mute as HA ``switch`` entities.
+mute/invert), the global mute, and the live-diagnostics toggle as HA
+``switch`` entities.
 
 Write strategy:
 - ``MUTE_FAST`` → ``coordinator.async_set_mute()`` (fast-path).
+- ``LIVE_DIAGNOSTICS`` → ``coordinator.set_live_diagnostics()`` (local).
 - ``CONFIG_PATH`` → ``coordinator.async_apply_value()`` (immediate,
   no debounce for booleans).
 """
@@ -113,6 +115,9 @@ class CamillaDSPSwitch(CamillaDSPEntity, SwitchEntity):
             # is True when mute is True.
             return self.coordinator.mute
 
+        if strategy == MutationStrategy.LIVE_DIAGNOSTICS:
+            return self.coordinator.live_diagnostics
+
         # Default: read boolean from config doc.
         value = self._get_config_value()
         if value is None:
@@ -139,10 +144,21 @@ class CamillaDSPSwitch(CamillaDSPEntity, SwitchEntity):
 
     async def _async_set_value(self, value: bool) -> None:
         """Write the boolean value through the coordinator."""
+        if not self.descriptor.writable:
+            _LOGGER.warning(
+                "Ignoring write to non-writable switch entity %s",
+                self.descriptor.unique_id,
+            )
+            return
+
         strategy = self.descriptor.mutation_strategy
 
         if strategy == MutationStrategy.MUTE_FAST:
             await self.coordinator.async_set_mute(value)
+            return
+
+        if strategy == MutationStrategy.LIVE_DIAGNOSTICS:
+            self.coordinator.set_live_diagnostics(value)
             return
 
         if strategy == MutationStrategy.CONFIG_PATH and self.descriptor.config_path:

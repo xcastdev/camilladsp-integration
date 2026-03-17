@@ -15,7 +15,7 @@ import logging
 from typing import Any
 
 from .descriptors import EntityDescriptor, EntityPlatform, MutationStrategy
-from .utils import is_tokenized, resolve_config_value, sanitize_id
+from .utils import sanitize_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,35 +40,26 @@ def build_switch_descriptors(
         )
     )
 
+    # Live diagnostics toggle – enables fast polling while the DSP is running
+    descriptors.append(
+        EntityDescriptor(
+            unique_id=f"camilladsp_{entry_id}_live_diagnostics",
+            platform=EntityPlatform.SWITCH,
+            label="Live Diagnostics",
+            translation_key="live_diagnostics",
+            value_type=bool,
+            mutation_strategy=MutationStrategy.LIVE_DIAGNOSTICS,
+            icon="mdi:pulse",
+            entity_category="config",
+        )
+    )
+
     descriptors.extend(_build_filter_switches(config_doc, entry_id))
     descriptors.extend(_build_pipeline_switches(config_doc, entry_id))
     descriptors.extend(_build_processor_switches(config_doc, entry_id))
     descriptors.extend(_build_mixer_switches(config_doc, entry_id))
 
-    # Mark tokenized parameters as non-editable (read-only)
-    descriptors = _apply_token_detection(descriptors, config_doc)
-
     return descriptors
-
-
-def _apply_token_detection(
-    descriptors: list[EntityDescriptor],
-    config_doc: dict[str, Any],
-) -> list[EntityDescriptor]:
-    """Replace descriptors whose backing value is tokenized with non-editable copies."""
-    result: list[EntityDescriptor] = []
-    for desc in descriptors:
-        if desc.config_path and is_tokenized(
-            resolve_config_value(config_doc, desc.config_path)
-        ):
-            _LOGGER.debug(
-                "Marking %s as non-editable (tokenized value)", desc.unique_id
-            )
-            from dataclasses import replace
-
-            desc = replace(desc, editable=False)
-        result.append(desc)
-    return result
 
 
 # ------------------------------------------------------------------

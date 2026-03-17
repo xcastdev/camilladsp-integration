@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import timedelta
+from time import monotonic
 from typing import Any, Callable
 
 from homeassistant.config_entries import ConfigEntry
@@ -30,9 +31,10 @@ from .api.errors import (
     CamillaDSPValidationError,
 )
 from .api.models import GuiConfig, RuntimeStatus, StoredConfig
-from .const import DEBOUNCE_DELAY, DOMAIN, UPDATE_INTERVAL
+from .const import DEBOUNCE_DELAY, UPDATE_INTERVAL
 from .entities.builder import build_descriptors, diff_descriptors
 from .entities.descriptors import EntityDescriptor
+from .polling import runtime_update_interval, should_refresh_active_file
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,7 +43,8 @@ class CamillaDSPCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator for CamillaDSP runtime state and config management.
 
     Responsibilities:
-    - Polls runtime status, volume, and mute on UPDATE_INTERVAL.
+    - Polls runtime status, volume, and mute, using faster refreshes while
+      the DSP is running.
     - Detects external config-file switches and reloads accordingly.
     - Provides write methods that serialise through a single asyncio lock.
     - Manages debounced writes for high-frequency UI controls (sliders).
@@ -74,6 +77,8 @@ class CamillaDSPCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._status: RuntimeStatus | None = None
         self._volume: float | None = None
         self._mute: bool | None = None
+        self._live_diagnostics: bool = False
+        self._last_active_file_refresh: float | None = None
 
         # ---- Write coordination ----
         self._write_lock = asyncio.Lock()
@@ -130,6 +135,18 @@ class CamillaDSPCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def mute(self) -> bool | None:
         """Current global mute state."""
         return self._mute
+
+    @property
+    def live_diagnostics(self) -> bool:
+        """Whether live (fast) diagnostic polling is enabled."""
+        return self._live_diagnostics
+
+    @callback
+    def set_live_diagnostics(self, enabled: bool) -> None:
+        """Enable or disable live diagnostic polling and adjust interval."""
+        self._live_diagnostics = enabled
+        self._refresh_update_interval()
+        self.async_set_updated_data(self._build_data_dict())
 
     @property
     def descriptors(self) -> list[EntityDescriptor]:
@@ -193,6 +210,7 @@ class CamillaDSPCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._config_doc = self._normalize_config(
                     active_file.config, active_file.filename
                 )
+                self._last_active_file_refresh = monotonic()
 
             if isinstance(stored, list):
                 self._stored_configs = stored
@@ -205,6 +223,8 @@ class CamillaDSPCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             if isinstance(mute, bool):
                 self._mute = mute
+
+            self._refresh_update_interval()
 
         except CamillaDSPConnectionError as err:
             raise UpdateFailed(f"Cannot connect to CamillaDSP: {err}") from err
@@ -221,34 +241,42 @@ class CamillaDSPCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_update_data(self) -> dict[str, Any]:
         """Poll runtime status and check for external config changes.
 
-        Runs on every ``UPDATE_INTERVAL``:
+        Runs on every active poll interval:
         1. Fetch runtime status, volume, and mute.
-        2. Check if the active filename changed externally.
+        2. Check the active filename on a slower cadence to avoid extra load.
         3. If changed, reload config and rebuild descriptors.
         4. Return combined state dict for entity consumption.
         """
         try:
-            # Parallel fetch for runtime values
-            status_task = self.client.get_status()
-            volume_task = self.client.get_volume()
-            mute_task = self.client.get_mute()
-            active_file_task = self.client.get_active_config_file()
-
-            results = await asyncio.gather(
-                status_task,
-                volume_task,
-                mute_task,
-                active_file_task,
-                return_exceptions=True,
+            now = monotonic()
+            refresh_active_file = should_refresh_active_file(
+                self._last_active_file_refresh,
+                now,
+                UPDATE_INTERVAL,
             )
 
-            status, volume, mute, active_file = results
+            # Parallel fetch for runtime values. Active config checks stay on the
+            # default cadence even when runtime diagnostics are refreshing faster.
+            tasks = [
+                self.client.get_status(),
+                self.client.get_volume(),
+                self.client.get_mute(),
+            ]
+            if refresh_active_file:
+                tasks.append(self.client.get_active_config_file())
+
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            status, volume, mute = results[:3]
+            active_file = results[3] if refresh_active_file else None
 
             # Update status
             if isinstance(status, RuntimeStatus):
                 self._status = status
             elif isinstance(status, CamillaDSPConnectionError):
                 raise status
+
+            self._refresh_update_interval()
 
             # Update volume
             if isinstance(volume, (int, float)):
@@ -263,26 +291,30 @@ class CamillaDSPCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 raise mute
 
             # Detect external config file switch
-            if not isinstance(active_file, BaseException):
-                new_filename = active_file.filename
-                if new_filename != self._active_filename:
-                    _LOGGER.info(
-                        "Active config changed externally: %s → %s",
-                        self._active_filename,
-                        new_filename,
-                    )
-                    self._active_filename = new_filename
-                    self._config_doc = self._normalize_config(
-                        active_file.config, new_filename
-                    )
-                    # Also refresh stored configs on config change
-                    try:
-                        self._stored_configs = await self.client.get_stored_configs()
-                    except CamillaDSPError as err:
-                        _LOGGER.warning("Failed to refresh stored configs: %s", err)
-                    self._rebuild_descriptors()
-            elif isinstance(active_file, CamillaDSPConnectionError):
-                raise active_file
+            if refresh_active_file:
+                self._last_active_file_refresh = now
+                if not isinstance(active_file, BaseException):
+                    new_filename = active_file.filename
+                    if new_filename != self._active_filename:
+                        _LOGGER.info(
+                            "Active config changed externally: %s → %s",
+                            self._active_filename,
+                            new_filename,
+                        )
+                        self._active_filename = new_filename
+                        self._config_doc = self._normalize_config(
+                            active_file.config, new_filename
+                        )
+                        # Also refresh stored configs on config change
+                        try:
+                            self._stored_configs = (
+                                await self.client.get_stored_configs()
+                            )
+                        except CamillaDSPError as err:
+                            _LOGGER.warning("Failed to refresh stored configs: %s", err)
+                        self._rebuild_descriptors()
+                elif isinstance(active_file, CamillaDSPConnectionError):
+                    raise active_file
 
         except CamillaDSPConnectionError as err:
             raise UpdateFailed(f"Cannot connect to CamillaDSP: {err}") from err
@@ -298,6 +330,23 @@ class CamillaDSPCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "stored_configs": self._stored_configs,
         }
 
+    @callback
+    def _refresh_update_interval(self) -> None:
+        """Adjust the coordinator poll interval for the current DSP state."""
+        new_interval = runtime_update_interval(
+            UPDATE_INTERVAL,
+            self._gui_config,
+            self._status,
+            live_diagnostics=self._live_diagnostics,
+        )
+        if self.update_interval != new_interval:
+            _LOGGER.debug(
+                "Updating poll interval from %s to %s",
+                self.update_interval,
+                new_interval,
+            )
+            self.update_interval = new_interval
+
     # ------------------------------------------------------------------
     # Config load / reload
     # ------------------------------------------------------------------
@@ -310,6 +359,7 @@ class CamillaDSPCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._config_doc = self._normalize_config(
                 active_file.config, active_file.filename
             )
+            self._last_active_file_refresh = monotonic()
             self._stored_configs = await self.client.get_stored_configs()
         except CamillaDSPError as err:
             _LOGGER.error("Failed to load config: %s", err)
